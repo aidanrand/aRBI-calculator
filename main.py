@@ -1,6 +1,8 @@
 import re
 import requests
-link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
+link = "https://baseballsavant.mlb.com/gf?game_pk=717111"
+#link = "https://baseballsavant.mlb.com/gf?game_pk=663222"
+#link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717442"
 
 json_data = requests.get(link).json()
@@ -107,42 +109,55 @@ print(home_scoring_inning_plays)
 print(away_scoring_inning_plays)
 print(home_scoring_innings)
 print(away_scoring_innings)
-home_runners_that_score = []
-away_runners_that_score = []
-for inning, plays_list in home_scoring_inning_plays.items():
-    for i in range(len(plays_list)-1,-1,-1):
-        batter = plays_list[i][0]
-        play_description = plays_list[i][1]
-        for player in home_players.keys():
-            runner_scored_re = player + '[ ]{0,4}scores'
-            runner_finder = re.compile(runner_scored_re)
-            match = runner_finder.findall(play_description)
-            if len(match) > 0:
-                home_runners_that_score.append(player)
-                print(player)
-            homers_scored_re = player + '[ ]{0,4}homers'
-            homer_finder = re.compile(homers_scored_re)
-            match = homer_finder.findall(play_description)
-            if len(match) > 0:
-                home_runners_that_score.append(player)
-                print(player)
 
-for inning, plays_list in away_scoring_inning_plays.items():
-    for i in range(len(plays_list)-1,-1,-1):
-        batter = plays_list[i][0]
-        play_description = plays_list[i][1]
-        for player in away_players.keys():
-            runner_scored_re = player + '[ ]{0,4}scores'
-            runner_finder = re.compile(runner_scored_re)
-            match = runner_finder.findall(play_description)
-            if len(match) > 0:
-                away_runners_that_score.append(player)
-            homers_scored_re = player + '[ ]{0,4}homers'
-            homer_finder = re.compile(homers_scored_re)
-            match = homer_finder.findall(play_description)
-            if len(match) > 0:
-                away_runners_that_score.append(player)
+def calculateaRBI(scoring_inning_plays,aRBIdict,players):
+    #calculate RBI and record runners that score
+    for inning, plays_list in scoring_inning_plays.items():
+        print(plays_list)
+        runners_that_score = []
+        for i in range(len(plays_list)-1,-1,-1):
+            batter = plays_list[i][0]
+            play_description = plays_list[i][1]
+            for player in players.keys():
+                runner_scored_re = player + '[ ]{0,4}scores'
+                runner_finder = re.compile(runner_scored_re)
+                match = runner_finder.findall(play_description)
+                if len(match) > 0:
+                    runners_that_score.append(player)
+                    aRBIdict[batter] += len(match)
+                homers_scored_re = player + '[ ]{0,4}homers'
+                homer_finder = re.compile(homers_scored_re)
+                match = homer_finder.findall(play_description)
+                if len(match) > 0:
+                    runners_that_score.append(player)
+                    aRBIdict[batter] += len(match)
+                grand_slam_scored_re = player + '.* grand slam'
+                grand_slam_finder = re.compile(grand_slam_scored_re)
+                match = grand_slam_finder.findall(play_description)
+                if len(match) > 0:
+                    runners_that_score.append(player)
+                    aRBIdict[batter] += len(match)
 
+
+calculateaRBI(home_scoring_inning_plays, home_aRBI, home_players)
+calculateaRBI(away_scoring_inning_plays, away_aRBI, away_players)
+
+homesum = 0
+awaysum = 0
+for players,aRBI in home_aRBI.items():
+    if aRBI > 0:
+        print(players,aRBI)
+        homesum += aRBI
+
+print("Total RBI: ",homesum)
+
+for players,aRBI in away_aRBI.items():
+
+    if aRBI > 0:
+        print(players,aRBI)
+        awaysum += aRBI
+
+print("Total RBI: ",awaysum)
 
 
 
