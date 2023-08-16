@@ -6,7 +6,7 @@ link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717442"
 
-#To do: find a game with a wild pitch with runner that scores, steal of 2nd, and reach on error
+#To do: find a game with a wild pitch with runner that scores, steal of 2nd, and reach on error, player that scores twice in an inning
 # batter reaches on error: no arbi
 # runner scores on error: no arbi
 #runner that will score advances on error but does not score: arbi
@@ -14,8 +14,8 @@ link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
 json_data = requests.get(link).json()
 keys = json_data.keys()
 
-away_lineup = json_data.get('away_lineup')
-home_lineup = json_data.get('home_lineup')
+# away_lineup = json_data.get('away_lineup')
+# home_lineup = json_data.get('home_lineup')
 
 game_date = json_data.get('gameDate')
 scoreboard = json_data.get('scoreboard')
@@ -23,49 +23,54 @@ scoreboard_by_inning = scoreboard.get('linescore').get('innings')
 
 home_team_data = json_data.get('home_team_data')
 home_team = home_team_data.get('name')
-home_abbreviation = home_team_data.get('abbreviation')
+#home_abbreviation = home_team_data.get('abbreviation')
 #data for team is listed when they are pitching, not when they are batting
 home_team_play_by_play = json_data.get('team_away')
 
 away_team_data = json_data.get('away_team_data')
 away_team = away_team_data.get('name')
-away_abbreviation = away_team_data.get('abbreviation')
+#away_abbreviation = away_team_data.get('abbreviation')
 away_team_play_by_play = json_data.get('team_home')
 
 away_batters = json_data.get('away_batters')
 boxscore = json_data.get('boxscore')
 boxscore_teams = boxscore.get('teams')
 
-away_players_dict = boxscore_teams.get('away').get('players')
 away_players = {}
 away_aRBI = {}
-for player_info in away_players_dict.values():
+runs_remaining_away = {}
+for player_info in boxscore_teams.get('away').get('players').values():
     player_id = player_info.get('person').get('id')
     player_name = player_info.get('person').get('fullName')
+    player_runs = player_info.get('stats').get('batting').get('runs')
+    if player_runs is None:
+        player_runs = 0
+    runs_remaining_away[player_name] = player_runs
     away_players[player_name] = player_id
     away_aRBI[player_name] = 0
 
-home_players_dict = boxscore_teams.get('home').get('players')
 home_players = {}
 home_aRBI = {}
-for player_info in home_players_dict.values():
+runs_remaining_home = {}
+for player_info in  boxscore_teams.get('home').get('players').values():
     player_id = player_info.get('person').get('id')
     player_name = player_info.get('person').get('fullName')
+    player_runs = player_info.get('stats').get('batting').get('runs')
+    if player_runs is None:
+        player_runs = 0
+    runs_remaining_home[player_name] = player_runs
     home_players[player_name] = player_id
     home_aRBI[player_name] = 0
-
-print(away_players)
-print(home_players)
 
 #away_team_runs_by_inning = ['Away: ']
 away_scoring_innings = []
 away_scoring_inning_plays = {}
-away_team_runs = {}
+runs_by_inning_away = {}
 
 #home_team_runs_by_inning = ['Home: ']
 home_scoring_innings = []
 home_scoring_inning_plays = {}
-home_team_runs = {}
+runs_by_inning_home = {}
 
 for inning in scoreboard_by_inning:
     runs = inning.get('home').get('runs')
@@ -79,14 +84,14 @@ for inning in scoreboard_by_inning:
         if runs > 0:
             home_scoring_innings.append(inningnum)
             home_scoring_inning_plays[inningnum] = []
-            home_team_runs[inningnum] = [runs,[]]
+            runs_by_inning_home[inningnum] = [runs, []]
 
     runs = inning.get('away').get('runs')
     #away_team_runs_by_inning.append(runs)
     if runs > 0:
         away_scoring_innings.append(inningnum)
         away_scoring_inning_plays[inningnum] = []
-        away_team_runs[inningnum] = [runs,[]]
+        runs_by_inning_away[inningnum] = [runs,[]]
 
 for play in home_team_play_by_play:
     inning = play.get('inning')
@@ -106,44 +111,63 @@ for play in away_team_play_by_play:
         elif len(away_scoring_inning_plays[inning]) > 0 and away_scoring_inning_plays[inning][-1] != play_description:
             away_scoring_inning_plays[inning].append(play_description)
 
-print(home_team_runs)
-print(away_team_runs)
 
-
-def findrunnersthatscore(scoring_inning_plays, aRBIdict, players, team_runs):
+def findrunnersthatscore(scoring_inning_plays, aRBIdict, runs_remaining, runs_by_inning):
 
     for inning, plays_list in scoring_inning_plays.items():
         batters_this_inning = []
         for i in range(len(plays_list)-1,-1,-1):
             batter = plays_list[i][0]
+            batters_this_inning.append(batter)
             play_description = plays_list[i][1]
-            for player in players.keys():
+            for player in runs_remaining.keys():
                 run_scored_re = player + '[ ]{0,4}scores'
                 run_finder = re.compile(run_scored_re)
                 match = run_finder.findall(play_description)
                 if len(match) > 0:
-                    team_runs[inning][1].append(player)
+                    runs_by_inning[inning][1].append(player)
                     aRBIdict[batter] += len(match)
+                    runs_remaining[player] -= 1
+                    if runs_remaining[player] < 0 :
+                        print(player,runs_remaining)
+                        raise Exception("Player cannot have negative runs remaining")
+
                 homers_scored_re = player + '[ ]{0,4}homers'
                 homer_finder = re.compile(homers_scored_re)
                 match = homer_finder.findall(play_description)
                 if len(match) > 0:
-                    team_runs[inning][1].append(player)
+                    runs_by_inning[inning][1].append(player)
                     aRBIdict[batter] += len(match)
+                    runs_remaining[player] -= 1
+                    if runs_remaining[player] < 0:
+                        print(player, runs_remaining)
+                        raise Exception("Player cannot have negative runs remaining")
+
                 grand_slam_scored_re = player + '.* grand slam'
                 grand_slam_finder = re.compile(grand_slam_scored_re)
                 match = grand_slam_finder.findall(play_description)
                 if len(match) > 0:
-                    team_runs[inning][1].append(player)
+                    runs_by_inning[inning][1].append(player)
                     aRBIdict[batter] += len(match)
+                    runs_remaining[player] -= 1
+                    if players[player][1] < 0:
+                        print(player, players)
+                        raise Exception("Player cannot have negative runs remaining")
 
-        runners_that_score = team_runs[inning][1]
-        if len(runners_that_score) != team_runs[inning][0]:
-            print("ERROR: not all runners accounted for")
-        calculateaRBI(runners_that_score,plays_list,aRBIdict, players)
+    for inning, plays_list in scoring_inning_plays.items():
+        runners_that_score = runs_by_inning[inning][1]
+        if len(runners_that_score) != runs_by_inning[inning][0]:
+            runners_not_accounted_for = [player for player, runs in runs_remaining.items() if runs > 0]
+            if len(runners_not_accounted_for) == 1:
+                player = runners_not_accounted_for[0]
+                runs_remaining[player] -= 1
+                runners_that_score.append(player)
+            else:
+                raise Exception("ERROR: not all runners accounted for")
+        calculateaRBI(runners_that_score, plays_list, aRBIdict)
 
 
-def calculateaRBI(runners_that_score, plays_list, aRBIdict, players):
+def calculateaRBI(runners_that_score, plays_list, aRBIdict):
 
     for i in range(len(plays_list)-1,-1,-1):
         batter = plays_list[i][0]
@@ -186,9 +210,11 @@ def calculateaRBI(runners_that_score, plays_list, aRBIdict, players):
                 aRBIdict[batter] -= len(match)
 
 
-findrunnersthatscore(home_scoring_inning_plays, home_aRBI, home_players, home_team_runs)
-findrunnersthatscore(away_scoring_inning_plays, away_aRBI, away_players, away_team_runs)
+findrunnersthatscore(home_scoring_inning_plays, home_aRBI, runs_remaining_home, runs_by_inning_home)
+findrunnersthatscore(away_scoring_inning_plays, away_aRBI, runs_remaining_away, runs_by_inning_away)
 
+print(runs_by_inning_home)
+print(runs_by_inning_away)
 homesum = 0
 awaysum = 0
 for players, aRBI in home_aRBI.items():
@@ -204,4 +230,3 @@ for players, aRBI in away_aRBI.items():
         awaysum += aRBI
 
 print("Total aRBI: ", awaysum)
-print(away_aRBI)
