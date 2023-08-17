@@ -2,7 +2,8 @@ import re
 import requests
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717111"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=663222"
-link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
+#link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
+link = "https://baseballsavant.mlb.com/gf?game_pk=717222"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717442"
 
@@ -10,7 +11,7 @@ link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
 # batter reaches on error: no arbi
 # runner scores on error: no arbi
 #runner that will score advances on error but does not score: arbi
-#runner that scores on wild pitch isnt shown as scoring as a result of a pa
+#batters who are pinch ran for do not recieve an arbi if their pinch runner scores
 json_data = requests.get(link).json()
 keys = json_data.keys()
 
@@ -168,46 +169,62 @@ def findrunnersthatscore(scoring_inning_plays, aRBIdict, runs_remaining, runs_by
 
 
 def calculateaRBI(runners_that_score, plays_list, aRBIdict):
-
     for i in range(len(plays_list)-1,-1,-1):
         batter = plays_list[i][0]
         play_description = plays_list[i][1]
-
-        # calculate aRBIs
-        if batter in runners_that_score:
-            continue
-            #runners_that_score.remove(batter)
+        # if batter in runners_that_score:
+        #     continue
+        #     #runners_that_score.remove(batter)
 
         for runner in runners_that_score:
-            runner_to_2nd_re = runner + 'to 2nd'
-            runner_to_2nd_finder = re.compile(runner_to_2nd_re)
-            match = runner_to_2nd_finder.findall(play_description)
-            if len(match) > 0:
-                aRBIdict[batter] += len(match)
-
             #batters where runners advance on an error are not given an aRBI
-            runner_to_2nd_on_error_re = runner +'.* to 2nd' + '.* error'
-            runner_to_2nd_on_error_finder = re.compile(runner_to_2nd_on_error_re)
+            runner_to_2nd_on_error_finder = re.compile(runner + '\\.* to 2nd' + '\\.* error')
             match = runner_to_2nd_on_error_finder.findall(play_description)
-            if len(match) > 0:
-                print(match)
-                print(play_description)
-                aRBIdict[batter] -= len(match)
 
-            runner_to_3rd_re = runner + 'to 3rd'
-            runner_to_3rd_finder = re.compile(runner_to_3rd_re)
-            match = runner_to_3rd_finder.findall(play_description)
+            if len(match) == 0:
+                runner_to_2nd_finder = re.compile(runner + '[ ]{0,4}to 2nd')
+                match = runner_to_2nd_finder.findall(play_description)
+                if len(match) > 0:
+                    aRBIdict[batter] += len(match)
+
+            # batters where runners advance on an error are not given an aRBI
+            runner_to_3rd_on_error_finder = re.compile(runner + '\\.* to 3rd' + '\\.* error')
+            match = runner_to_3rd_on_error_finder.findall(play_description)
+            if len(match) == 0:
+                runner_to_3rd_finder = re.compile(runner + '[ ]{0,4}to 3rd')
+                match = runner_to_3rd_finder.findall(play_description)
+                if len(match) > 0:
+                    aRBIdict[batter] += len(match)
+
+            single_finder = re.compile(runner + '[ ]{0,4}singles')
+            match = single_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
 
-                # batters where runners advance on an error are not given an aRBI
-            runner_to_3rd_on_error_re = runner + '.* to 3rd' + '.* error'
-            runner_to_3rd_on_error_finder = re.compile(runner_to_3rd_on_error_re)
-            match = runner_to_3rd_on_error_finder.findall(play_description)
+            double_finder = re.compile(runner + '[ ]{0,4}doubles')
+            match = double_finder.findall(play_description)
             if len(match) > 0:
-                print(match)
-                print(play_description)
-                aRBIdict[batter] -= len(match)
+                aRBIdict[batter] += len(match)
+
+            triple_finder = re.compile(runner + '[ ]{0,4}triples')
+            match = triple_finder.findall(play_description)
+            if len(match) > 0:
+                aRBIdict[batter] += len(match)
+
+            walk_finder = re.compile(runner + '[ ]{0,4}walks')
+            match = walk_finder.findall(play_description)
+            if len(match) > 0:
+                aRBIdict[batter] += len(match)
+
+            fielders_choice_finder = re.compile(runner + '[ ]{0,4}reaches on a fielder\'s choice')
+            match = fielders_choice_finder.findall(play_description)
+            if len(match) > 0:
+                aRBIdict[batter] += len(match)
+
+            hit_by_pitch_finder = re.compile(runner + '[ ]{0,4}hit by pitch')
+            match = hit_by_pitch_finder.findall(play_description)
+            if len(match) > 0:
+                aRBIdict[batter] += len(match)
 
 
 findrunnersthatscore(home_scoring_inning_plays, home_aRBI, runs_remaining_home, runs_by_inning_home)
