@@ -1,9 +1,9 @@
 import re
 import requests
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717111"
-#link = "https://baseballsavant.mlb.com/gf?game_pk=663222"
+#link = "https://baseballsavant.mlb.com/gf?game_pk=717111" correct
+link = "https://baseballsavant.mlb.com/gf?game_pk=663222"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
-link = "https://baseballsavant.mlb.com/gf?game_pk=717222"
+#link = "https://baseballsavant.mlb.com/gf?game_pk=717222"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
 #link = "https://baseballsavant.mlb.com/gf?game_pk=717442"
 
@@ -116,6 +116,7 @@ for play in away_team_play_by_play:
 def findrunnersthatscore(scoring_inning_plays, aRBIdict, runs_remaining, runs_by_inning):
 
     for inning, plays_list in scoring_inning_plays.items():
+        print(plays_list)
         batters_this_inning = []
         for i in range(len(plays_list)-1,-1,-1):
             batter = plays_list[i][0]
@@ -151,7 +152,7 @@ def findrunnersthatscore(scoring_inning_plays, aRBIdict, runs_remaining, runs_by
                     runs_by_inning[inning][1].append(player)
                     aRBIdict[batter] += len(match)
                     runs_remaining[player] -= 1
-                    if players[player][1] < 0:
+                    if runs_remaining[player] < 0:
                         print(player, players)
                         raise Exception("Player cannot have negative runs remaining")
 
@@ -178,35 +179,39 @@ def calculateaRBI(runners_that_score, plays_list, aRBIdict):
 
         for runner in runners_that_score:
             #batters where runners advance on an error are not given an aRBI
-            runner_to_2nd_on_error_finder = re.compile(runner + '\\.* to 2nd' + '\\.* error')
+            runner_to_2nd_on_error_finder = re.compile(runner + '.* to 2nd.* error')
             match = runner_to_2nd_on_error_finder.findall(play_description)
-
             if len(match) == 0:
-                runner_to_2nd_finder = re.compile(runner + '[ ]{0,4}to 2nd')
+                runner_to_2nd_finder = re.compile(runner + ' {0,4}to 2nd')
                 match = runner_to_2nd_finder.findall(play_description)
                 if len(match) > 0:
                     aRBIdict[batter] += len(match)
 
             # batters where runners advance on an error are not given an aRBI
-            runner_to_3rd_on_error_finder = re.compile(runner + '\\.* to 3rd' + '\\.* error')
+            runner_to_3rd_on_error_finder = re.compile(runner + '.* to 3rd.* error')
             match = runner_to_3rd_on_error_finder.findall(play_description)
             if len(match) == 0:
-                runner_to_3rd_finder = re.compile(runner + '[ ]{0,4}to 3rd')
+                runner_to_3rd_finder = re.compile(runner + ' {0,4}to 3rd')
                 match = runner_to_3rd_finder.findall(play_description)
                 if len(match) > 0:
                     aRBIdict[batter] += len(match)
 
-            single_finder = re.compile(runner + '[ ]{0,4}singles')
+            single_finder = re.compile(runner + ' {0,4}singles')
             match = single_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
 
-            double_finder = re.compile(runner + '[ ]{0,4}doubles')
+            double_finder = re.compile(runner + ' {0,4}doubles')
             match = double_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
 
-            triple_finder = re.compile(runner + '[ ]{0,4}triples')
+            ground_rule_double_finder = re.compile(runner + ' {0,4}hits a ground-rule double')
+            match = ground_rule_double_finder.findall(play_description)
+            if len(match) > 0:
+                aRBIdict[batter] += len(match)
+
+            triple_finder = re.compile(runner + ' {0,4}triples')
             match = triple_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
@@ -216,12 +221,12 @@ def calculateaRBI(runners_that_score, plays_list, aRBIdict):
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
 
-            fielders_choice_finder = re.compile(runner + '[ ]{0,4}reaches on a fielder\'s choice')
+            fielders_choice_finder = re.compile(runner + ' {0,4}reaches on a fielder\'s choice')
             match = fielders_choice_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
 
-            hit_by_pitch_finder = re.compile(runner + '[ ]{0,4}hit by pitch')
+            hit_by_pitch_finder = re.compile(runner + ' {0,4}hit by pitch')
             match = hit_by_pitch_finder.findall(play_description)
             if len(match) > 0:
                 aRBIdict[batter] += len(match)
