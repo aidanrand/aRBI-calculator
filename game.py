@@ -204,23 +204,3 @@ class game:
         for runner in runners_that_score:
             aRBIdict[runner] += 1
 
-        findrunnersthatscore(self.home_aRBI,runs_remaining_home, runs_by_inning_home)
-        findrunnersthatscore(self.away_aRBI,runs_remaining_away, runs_by_inning_away)
-
-# print(runs_by_inning_home)
-# print(runs_by_inning_away)
-homesum = 0
-awaysum = 0
-for players, aRBI in self.home_aRBI.items():
-    if aRBI > 0:
-        print(players,aRBI)
-        homesum += aRBI
-
-print("Home Total aRBI: ", homesum)
-
-for players, aRBI in self.away_aRBI.items():
-    if aRBI > 0:
-        print(players, aRBI)
-        awaysum += aRBI
-
-print("Away Total aRBI: ", awaysum)
