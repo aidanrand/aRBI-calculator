@@ -16,21 +16,28 @@ link = "https://baseballsavant.mlb.com/gf?game_pk=717111" #correct
 from game import game
 
 newgame = game(link)
-newgame.findrunnersthatscore(newgame.home_aRBI, runs_remaining_home, runs_by_inning_home)
-newgame.findrunnersthatscore(self.away_aRBI, runs_remaining_away, runs_by_inning_away)
+newgame.parse_json()
+newgame.get_lineup()
+newgame.get_scoring_innings()
+
+home_runners_that_score = newgame.findrunnersthatscore(newgame.home_aRBI, newgame.runs_remaining_home, newgame.runs_by_inning_home, newgame.home_scoring_inning_plays)
+away_runners_that_score = newgame.findrunnersthatscore(newgame.away_aRBI, newgame.runs_remaining_away, newgame.runs_by_inning_away, newgame.away_scoring_inning_plays)
+
+newgame.calculateaRBI(home_runners_that_score, newgame.home_scoring_inning_plays, newgame.home_aRBI)
+newgame.calculateaRBI(away_runners_that_score, newgame.away_scoring_inning_plays, newgame.away_aRBI)
 
 # print(runs_by_inning_home)
 # print(runs_by_inning_away)
 homesum = 0
 awaysum = 0
-for players, aRBI in self.home_aRBI.items():
+for players, aRBI in newgame.home_aRBI.items():
     if aRBI > 0:
         print(players, aRBI)
         homesum += aRBI
 
 print("Home Total aRBI: ", homesum)
 
-for players, aRBI in self.away_aRBI.items():
+for players, aRBI in newgame.away_aRBI.items():
     if aRBI > 0:
         print(players, aRBI)
         awaysum += aRBI
