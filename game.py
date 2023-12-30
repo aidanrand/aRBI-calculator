@@ -30,6 +30,11 @@ class game:
         self.runs_remaining_away = {}
         self.home_players = {}
         self.runs_remaining_home = {}
+
+        self.runners_that_score_home = {}
+        self.runners_that_score_away = {}
+
+
     def parse_json(self):
         json_data = requests.get(self.link).json()
         keys = json_data.keys()
@@ -107,8 +112,7 @@ class game:
                     self.away_scoring_inning_plays[inning].append(play_description)
 
 
-    def findrunnersthatscore(self, aRBIdict, runs_remaining, runs_by_inning, scoring_inning_plays):
-
+    def findrunnersthatscore(self, aRBIdict, runs_remaining, runs_by_inning, scoring_inning_plays,runners_that_score):
         for inning, plays_list in scoring_inning_plays.items():
             batters_this_inning = []
             for i in range(len(plays_list)):
@@ -133,7 +137,6 @@ class game:
                     match = homer_finder.findall(play_description)
                     if len(match) > 0:
                         runs_by_inning[inning][1].append(player)
-                        #aRBIdict[batter] += len(match)
                         runs_remaining[player] -= 1
                         if runs_remaining[player] < 0:
                             print(player, runs_remaining)
@@ -144,38 +147,37 @@ class game:
                     match = grand_slam_finder.findall(play_description)
                     if len(match) > 0:
                         runs_by_inning[inning][1].append(player)
-                        #aRBIdict[batter] += len(match)
                         runs_remaining[player] -= 1
                         if runs_remaining[player] < 0:
                             print(player, runs_remaining)
                             raise Exception("Player cannot have negative runs remaining")
-            #print(batters_this_inning)
-            #print(inning,runs_by_inning[inning][1])
-        runners_that_score = self.adjust_for_uncounted_runners(runs_remaining, runs_by_inning, scoring_inning_plays)
-        return runners_that_score
 
-    def adjust_for_uncounted_runners(self,runs_remaining, runs_by_inning, scoring_inning_plays):
+        self.adjust_for_uncounted_runners(runs_remaining, runs_by_inning, scoring_inning_plays, runners_that_score)
+
+
+    def adjust_for_uncounted_runners(self,runs_remaining, runs_by_inning, scoring_inning_plays, runners_that_score):
+
         for inning, plays_list in scoring_inning_plays.items():
-            runners_that_score = runs_by_inning[inning][1]
-            if len(runners_that_score) != runs_by_inning[inning][0]:
+            runners_that_score[inning] = runs_by_inning[inning][1]
+            if len(runners_that_score[inning]) != runs_by_inning[inning][0]:
                 runners_not_accounted_for = [player for player, runs in runs_remaining.items() if runs > 0]
                 if len(runners_not_accounted_for) == 1:
                     player = runners_not_accounted_for[0]
                     runs_remaining[player] -= 1
-                    runners_that_score.append(player)
+                    runners_that_score[inning].append(player)
                 else:
                     raise Exception("ERROR: not all runners accounted for")
 
-        return runners_that_score
 
-    def calculateaRBI(self,runners_that_score, scoring_inning_plays, aRBIdict):
+    def calculateaRBI(self, runners_that_score, scoring_inning_plays, aRBIdict):
+
         for inning,plays_list in scoring_inning_plays.items():
             #plays_list = scoring_inning_plays.values()
             for i in range(len(plays_list)-1,-1,-1):
                 batter = plays_list[i][0]
                 play_description = plays_list[i][1]
                 aRBIs = []
-                for runner in set(runners_that_score):
+                for runner in set(runners_that_score[inning]):
                     if runner == batter:
                         continue
                     # batters where runners advance on an error are not given an aRBI
@@ -198,13 +200,14 @@ class game:
                             aRBIs.append(runner)
                             aRBIdict[batter] += len(match)
 
-        # check for batting twice in an inning
-        for runner in aRBIs:
-            if aRBIs.count(runner) > runners_that_score.count(runner):
-                print(aRBIs)
-                print(runners_that_score)
-                raise Exception("Overcounted a runner")
+            # check for batting twice in an inning
+            for runner in aRBIs:
+                if aRBIs.count(runner) > runners_that_score[inning].count(runner):
+                    print(aRBIs)
+                    print(runners_that_score)
+                    raise Exception("Overcounted a runner")
 
-        for runner in runners_that_score:
-            aRBIdict[runner] += 1
+        for inning, runners in runners_that_score.items():
+            for runner in runners:
+                aRBIdict[runner] += 1
 
