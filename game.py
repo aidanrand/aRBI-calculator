@@ -1,38 +1,38 @@
 import re
 import requests
+from team import Team
 
-class game:
+class Game:
     def __init__(self, link):
         self.link = link
         self.game_date = None
         self.scoreboard_by_inning = None
-        self.home_team = None
-        self.away_team = None
-        self.home_play_by_play = None
-        self.away_play_by_play = None
-        self.home_players_info = None
-        self.away_players_info = None
-
-        self.home_aRBI = {}
-        self.away_aRBI = {}
-
-        # away_team_runs_by_inning = ['Away: ']
-        self.away_scoring_innings = []
-        self.away_scoring_inning_plays = {}
-        self.runs_by_inning_away = {}
-
-        # home_team_runs_by_inning = ['Home: ']
-        self.home_scoring_innings = []
-        self.home_scoring_inning_plays = {}
-        self.runs_by_inning_home = {}
-
-        self.away_players = {}
-        self.runs_remaining_away = {}
-        self.home_players = {}
-        self.runs_remaining_home = {}
-
-        self.runners_that_score_home = {}
-        self.runners_that_score_away = {}
+        self.home = Team()
+        self.away = Team()
+        # self.home_play_by_play = None
+        # self.away_play_by_play = None
+        # self.home_players_info = None
+        # self.away_players_info = None
+        #
+        # self.home_aRBI = {}
+        # self.away_aRBI = {}
+        #
+        # self.away_scoring_innings = []
+        # self.away_scoring_inning_plays = {}
+        # self.runs_by_inning_away = {}
+        #
+        #
+        # self.home_scoring_innings = []
+        # self.home_scoring_inning_plays = {}
+        # self.runs_by_inning_home = {}
+        #
+        # self.away_players = {}
+        # self.runs_remaining_away = {}
+        # self.home_players = {}
+        # self.runs_remaining_home = {}
+        #
+        # self.runners_that_score_home = {}
+        # self.runners_that_score_away = {}
 
 
     def parse_json(self):
@@ -41,37 +41,37 @@ class game:
 
         self.game_date = json_data.get('gameDate')
         self.scoreboard_by_inning = json_data.get('scoreboard').get('linescore').get('innings')
-        self.home_team = json_data.get('home_team_data').get('name')
+        self.home.name = json_data.get('home_team_data').get('name')
 
         #data for team is listed when they are pitching, not when they are batting
-        self.home_play_by_play = json_data.get('team_away')
-        self.away_team = json_data.get('away_team_data').get('name')
-        self.away_play_by_play = json_data.get('team_home')
+        self.home.play_by_play = json_data.get('team_away')
+        self.away.name = json_data.get('away_team_data').get('name')
+        self.away.play_by_play = json_data.get('team_home')
 
-        self.home_players_info = json_data.get('boxscore').get('teams').get('home').get('players').values()
-        self.away_players_info = json_data.get('boxscore').get('teams').get('away').get('players').values()
+        self.home.players_info = json_data.get('boxscore').get('teams').get('home').get('players').values()
+        self.away.players_info = json_data.get('boxscore').get('teams').get('away').get('players').values()
 
-    def get_lineup(self):
+    def get_lineup(self, team):
 
-        for player_info in self.away_players_info:
+        for player_info in team.players_info:
             player_id = player_info.get('person').get('id')
             player_name = player_info.get('person').get('fullName')
             player_runs = player_info.get('stats').get('batting').get('runs')
             if player_runs is None:
                 player_runs = 0
-            self.runs_remaining_away[player_name] = player_runs
-            self.away_players[player_name] = player_id
-            self.away_aRBI[player_name] = 0
+            team.runs_remaining[player_name] = player_runs
+            team.players[player_name] = player_id
+            team.aRBI[player_name] = 0
 
-        for player_info in self.home_players_info:
-            player_id = player_info.get('person').get('id')
-            player_name = player_info.get('person').get('fullName')
-            player_runs = player_info.get('stats').get('batting').get('runs')
-            if player_runs is None:
-                player_runs = 0
-            self.runs_remaining_home[player_name] = player_runs
-            self.home_players[player_name] = player_id
-            self.home_aRBI[player_name] = 0
+        # for player_info in self.home.players_info:
+        #     player_id = player_info.get('person').get('id')
+        #     player_name = player_info.get('person').get('fullName')
+        #     player_runs = player_info.get('stats').get('batting').get('runs')
+        #     if player_runs is None:
+        #         player_runs = 0
+        #     self.home.runs_remaining[player_name] = player_runs
+        #     self.home.players[player_name] = player_id
+        #     self.home.aRBI[player_name] = 0
     def get_scoring_innings(self):
 
         for inning in self.scoreboard_by_inning:
@@ -82,53 +82,62 @@ class game:
                 continue
 
             if runs > 0:
-                self.home_scoring_innings.append(inningnum)
-                self.home_scoring_inning_plays[inningnum] = []
-                self.runs_by_inning_home[inningnum] = [runs, []]
+                self.home.scoring_innings.append(inningnum)
+                self.home.scoring_inning_plays[inningnum] = []
+                self.home.runs_by_inning[inningnum] = [runs, []]
 
             runs = inning.get('away').get('runs')
             #away_team_runs_by_inning.append(runs)
             if runs > 0:
-                self.away_scoring_innings.append(inningnum)
-                self.away_scoring_inning_plays[inningnum] = []
-                self.runs_by_inning_away[inningnum] = [runs,[]]
+                self.away.scoring_innings.append(inningnum)
+                self.away.scoring_inning_plays[inningnum] = []
+                self.away.runs_by_inning[inningnum] = [runs,[]]
 
-        for play in self.home_play_by_play:
+        self.get_play_by_play(self.home)
+        self.get_play_by_play(self.away)
+
+
+    def get_play_by_play(self, team):
+        for play in team.play_by_play:
             inning = play.get('inning')
-            if inning in self.home_scoring_innings:
+            if inning in team.scoring_innings:
                 play_description = [play.get('batter_name'), play.get('des')]
-                if len(self.home_scoring_inning_plays[inning]) == 0:
-                    self.home_scoring_inning_plays[inning].append(play_description)
-                elif len(self.home_scoring_inning_plays[inning]) > 0 and self.home_scoring_inning_plays[inning][-1] != play_description:
-                    self.home_scoring_inning_plays[inning].append(play_description)
+                if len(team.scoring_inning_plays[inning]) == 0:
+                    team.scoring_inning_plays[inning].append(play_description)
+                elif len(team.scoring_inning_plays[inning]) > 0 and team.scoring_inning_plays[inning][-1] != play_description:
+                    team.scoring_inning_plays[inning].append(play_description)
 
-        for play in self.away_play_by_play:
-            inning = play.get('inning')
-            if inning in self.away_scoring_innings:
-                play_description = [play.get('batter_name'), play.get('des')]
-                if len(self.away_scoring_inning_plays[inning]) == 0:
-                    self.away_scoring_inning_plays[inning].append(play_description)
-                elif len(self.away_scoring_inning_plays[inning]) > 0 and self.away_scoring_inning_plays[inning][-1] != play_description:
-                    self.away_scoring_inning_plays[inning].append(play_description)
+        # for play in self.away.play_by_play:
+        #     inning = play.get('inning')
+        #     if inning in self.away.scoring_innings:
+        #         play_description = [play.get('batter_name'), play.get('des')]
+        #         if len(self.away.scoring_inning_plays[inning]) == 0:
+        #             self.away.scoring_inning_plays[inning].append(play_description)
+        #         elif len(self.away.scoring_inning_plays[inning]) > 0 and self.away.scoring_inning_plays[inning][-1] != play_description:
+        #             self.away.scoring_inning_plays[inning].append(play_description)
 
 
-    def findrunnersthatscore(self, aRBIdict, runs_remaining, runs_by_inning, scoring_inning_plays,runners_that_score):
-        for inning, plays_list in scoring_inning_plays.items():
+    def findrunnersthatscore(self, team):
+            #aRBIdict, runs_remaining, runs_by_inning, scoring_inning_plays,runners_that_score):
+        # aRBI = team.aRBI
+        # runs_remaining = team.runs_remaining
+        # runs_by_inning = team.runs
+        for inning, plays_list in team.scoring_inning_plays.items():
             batters_this_inning = []
             for i in range(len(plays_list)):
                 batter = plays_list[i][0]
                 batters_this_inning.append(batter)
                 play_description = plays_list[i][1]
-                for player in runs_remaining.keys():
+                for player in team.runs_remaining.keys():
                     run_scored_re = player + '[ ]{0,4}scores'
                     run_finder = re.compile(run_scored_re)
                     match = run_finder.findall(play_description)
                     if len(match) > 0:
-                        runs_by_inning[inning][1].append(player)
-                        aRBIdict[batter] += len(match)
-                        runs_remaining[player] -= 1
-                        if runs_remaining[player] < 0:
-                            print(player,runs_remaining)
+                        team.runs_by_inning[inning][1].append(player)
+                        team.aRBI[batter] += len(match)
+                        team.runs_remaining[player] -= 1
+                        if team.runs_remaining[player] < 0:
+                            print(player,team.runs_remaining)
                             print(plays_list)
                             raise Exception("Player cannot have negative runs remaining")
 
@@ -136,48 +145,48 @@ class game:
                     homer_finder = re.compile(homers_scored_re)
                     match = homer_finder.findall(play_description)
                     if len(match) > 0:
-                        runs_by_inning[inning][1].append(player)
-                        runs_remaining[player] -= 1
-                        if runs_remaining[player] < 0:
-                            print(player, runs_remaining)
+                        team.runs_by_inning[inning][1].append(player)
+                        team.runs_remaining[player] -= 1
+                        if team.runs_remaining[player] < 0:
+                            print(player, team.runs_remaining)
                             raise Exception("Player cannot have negative runs remaining")
 
                     grand_slam_scored_re = player + '.* grand slam'
                     grand_slam_finder = re.compile(grand_slam_scored_re)
                     match = grand_slam_finder.findall(play_description)
                     if len(match) > 0:
-                        runs_by_inning[inning][1].append(player)
-                        runs_remaining[player] -= 1
-                        if runs_remaining[player] < 0:
-                            print(player, runs_remaining)
+                        team.runs_by_inning[inning][1].append(player)
+                        team.runs_remaining[player] -= 1
+                        if team.runs_remaining[player] < 0:
+                            print(player, team.runs_remaining)
                             raise Exception("Player cannot have negative runs remaining")
 
-        self.adjust_for_uncounted_runners(runs_remaining, runs_by_inning, scoring_inning_plays, runners_that_score)
+        self.adjust_for_uncounted_runners(team)
 
 
-    def adjust_for_uncounted_runners(self,runs_remaining, runs_by_inning, scoring_inning_plays, runners_that_score):
+    def adjust_for_uncounted_runners(self, team):
 
-        for inning, plays_list in scoring_inning_plays.items():
-            runners_that_score[inning] = runs_by_inning[inning][1]
-            if len(runners_that_score[inning]) != runs_by_inning[inning][0]:
-                runners_not_accounted_for = [player for player, runs in runs_remaining.items() if runs > 0]
+        for inning, plays_list in team.scoring_inning_plays.items():
+            team.runners_that_score[inning] = team.runs_by_inning[inning][1]
+            if len(team.runners_that_score[inning]) != team.runs_by_inning[inning][0]:
+                runners_not_accounted_for = [player for player, runs in team.runs_remaining.items() if runs > 0]
                 if len(runners_not_accounted_for) == 1:
                     player = runners_not_accounted_for[0]
-                    runs_remaining[player] -= 1
-                    runners_that_score[inning].append(player)
+                    team.runs_remaining[player] -= 1
+                    team.runners_that_score[inning].append(player)
                 else:
                     raise Exception("ERROR: not all runners accounted for")
 
 
-    def calculateaRBI(self, runners_that_score, scoring_inning_plays, aRBIdict):
+    def calculateaRBI(self, team):
 
-        for inning,plays_list in scoring_inning_plays.items():
+        for inning,plays_list in team.scoring_inning_plays.items():
             #plays_list = scoring_inning_plays.values()
             for i in range(len(plays_list)-1,-1,-1):
                 batter = plays_list[i][0]
                 play_description = plays_list[i][1]
                 aRBIs = []
-                for runner in set(runners_that_score[inning]):
+                for runner in set(team.runners_that_score[inning]):
                     if runner == batter:
                         continue
                     # batters where runners advance on an error are not given an aRBI
@@ -188,7 +197,7 @@ class game:
                         match = runner_to_2nd_finder.findall(play_description)
                         if len(match) > 0:
                             aRBIs.append(runner)
-                            aRBIdict[batter] += len(match)
+                            team.aRBI[batter] += len(match)
 
                     # batters where runners advance on an error are not given an aRBI
                     runner_to_3rd_on_error_finder = re.compile(runner + '.* to 3rd.* error')
@@ -198,16 +207,16 @@ class game:
                         match = runner_to_3rd_finder.findall(play_description)
                         if len(match) > 0:
                             aRBIs.append(runner)
-                            aRBIdict[batter] += len(match)
+                            team.aRBI[batter] += len(match)
 
             # check for batting twice in an inning
             for runner in aRBIs:
-                if aRBIs.count(runner) > runners_that_score[inning].count(runner):
+                if aRBIs.count(runner) > team.runners_that_score[inning].count(runner):
                     print(aRBIs)
-                    print(runners_that_score)
+                    print(team.runners_that_score)
                     raise Exception("Overcounted a runner")
 
-        for inning, runners in runners_that_score.items():
+        for inning, runners in team.runners_that_score.items():
             for runner in runners:
-                aRBIdict[runner] += 1
+                team.aRBI[runner] += 1
 
