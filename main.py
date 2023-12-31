@@ -16,17 +16,21 @@ links = ["https://baseballsavant.mlb.com/gf?game_pk=717111", "https://baseballsa
 # runner scores on error: no arbi
 #runner that will score advances on error but does not score: arbi
 #batters who are pinch ran for do not recieve an arbi if their pinch runner scores
+newlinks = ["https://baseballsavant.mlb.com/gf?game_pk=716484", "https://baseballsavant.mlb.com/gf?game_pk=716492","https://baseballsavant.mlb.com/gf?game_pk=716630",
+            "https://baseballsavant.mlb.com/gf?game_pk=717404"]
 from game import Game
 start = time.time()
-for link in links:
+for i in range(716404,718782):
+    print(i)
+    link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
     newgame = Game(link)
     newgame.parse_json()
     newgame.get_lineup(newgame.home)
     newgame.get_lineup(newgame.away)
     newgame.get_scoring_innings()
 
-    home_runners_that_score = newgame.findrunnersthatscore(newgame.home)
-    away_runners_that_score = newgame.findrunnersthatscore(newgame.away)
+    newgame.findrunnersthatscore(newgame.home)
+    newgame.findrunnersthatscore(newgame.away)
 
     newgame.calculateaRBI(newgame.home)
     newgame.calculateaRBI(newgame.away)
