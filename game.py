@@ -124,9 +124,13 @@ class Game:
                     break
                 elif len(runners_not_accounted_for) + len(team.runs_by_inning[inning][1]) == team.runs_by_inning[inning][0]:
                     print("here")
+                    runners_accounted_for = []
                     for runner in runners_not_accounted_for:
                         team.runs_remaining[runner] -= 1
                         team.runs_by_inning[inning][1].append(runner)
+                        runners_accounted_for.append(runner)
+
+                    for runner in runners_accounted_for:
                         runners_not_accounted_for.remove(runner)
                     break
                 else:

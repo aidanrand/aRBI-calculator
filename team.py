@@ -12,5 +12,5 @@ class Team:
         self.scoring_inning_plays = {}
         self.runs_by_inning = {}
         self.runs_remaining = {}
-        self.runners_that_score = {}
+        #self.runners_that_score = {}
 

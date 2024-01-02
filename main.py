@@ -20,9 +20,11 @@ newlinks = ["https://baseballsavant.mlb.com/gf?game_pk=716484", "https://basebal
             "https://baseballsavant.mlb.com/gf?game_pk=717404"]
 from game import Game
 start = time.time()
+#made it to 716624
 for i in range(716404,718782):
     print(i)
     link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
+
     newgame = Game(link)
     newgame.parse_json()
     newgame.get_lineup(newgame.home)
@@ -42,14 +44,14 @@ for i in range(716404,718782):
             #print(players, aRBI)
             homesum += aRBI
 
-    print("Home Total aRBI: ", homesum)
+    #print("Home Total aRBI: ", homesum)
 
     for players, aRBI in newgame.away.aRBI.items():
         if aRBI > 0:
             #print(players, aRBI)
             awaysum += aRBI
 
-    print("Away Total aRBI: ", awaysum)
+    #print("Away Total aRBI: ", awaysum)
 
 end = time.time()
 
