@@ -19,6 +19,10 @@ links = ["https://baseballsavant.mlb.com/gf?game_pk=717111", "https://baseballsa
 newlinks = ["https://baseballsavant.mlb.com/gf?game_pk=716484", "https://baseballsavant.mlb.com/gf?game_pk=716492","https://baseballsavant.mlb.com/gf?game_pk=716630",
             "https://baseballsavant.mlb.com/gf?game_pk=716803", "https://baseballsavant.mlb.com/gf?game_pk=716871","https://baseballsavant.mlb.com/gf?game_pk=717157"
             "https://baseballsavant.mlb.com/gf?game_pk=717038", "https://baseballsavant.mlb.com/gf?game_pk=717170"]
+#links to check:
+#https://baseballsavant.mlb.com/gamefeed?gamePk=717442
+#https://baseballsavant.mlb.com/gamefeed?gamePk=717111
+#https://baseballsavant.mlb.com/gamefeed?gamePk=717386
 from game import Game
 import game
 
