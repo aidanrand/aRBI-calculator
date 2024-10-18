@@ -20,9 +20,14 @@ newlinks = ["https://baseballsavant.mlb.com/gf?game_pk=716484", "https://basebal
             "https://baseballsavant.mlb.com/gf?game_pk=716803", "https://baseballsavant.mlb.com/gf?game_pk=716871","https://baseballsavant.mlb.com/gf?game_pk=717157"
             "https://baseballsavant.mlb.com/gf?game_pk=717038", "https://baseballsavant.mlb.com/gf?game_pk=717170"]
 #links to check:
-#https://baseballsavant.mlb.com/gamefeed?gamePk=717442
-#https://baseballsavant.mlb.com/gamefeed?gamePk=717111
-#https://baseballsavant.mlb.com/gamefeed?gamePk=717386
+links3 = ["https://baseballsavant.mlb.com/gamefeed?gamePk=717442","https://baseballsavant.mlb.com/gamefeed?gamePk=717111",
+"https://baseballsavant.mlb.com/gamefeed?gamePk=717386"]
+
+#check inside the park home run
+#check rbi walk
+#
+# 
+# check intentional walk
 from game import Game
 import game
 
@@ -35,7 +40,11 @@ start = time.time()
 #     link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
 # for i in range(1):
 #     link = "https://baseballsavant.mlb.com/gf?game_pk=717386"
-for link in links:
+
+#for link in links:
+for i in range(1):
+    j = 717386
+    link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(j)
     newgame = Game(link)
     validlink = newgame.parse_json()
     if not validlink:
@@ -55,17 +64,17 @@ for link in links:
     awaysum = 0
     for players, aRBI in newgame.home.aRBI.items():
         if aRBI > 0:
-            #print(players, aRBI)
+            print(players, aRBI)
             homesum += aRBI
 
-    #print("Home Total aRBI: ", homesum)
+    print("Home Total aRBI: ", homesum)
 
     for players, aRBI in newgame.away.aRBI.items():
         if aRBI > 0:
-            #print(players, aRBI)
+            print(players, aRBI)
             awaysum += aRBI
 
-    #print("Away Total aRBI: ", awaysum)
+    print("Away Total aRBI: ", awaysum)
 
 end = time.time()
 

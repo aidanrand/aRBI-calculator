@@ -2,6 +2,7 @@
 
 class Team:
     def __init__(self):
+        self.link = ""
         self.name = None
         self.play_by_play = None
         self.players_info = None
