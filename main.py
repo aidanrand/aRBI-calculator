@@ -25,7 +25,7 @@ links3 = ["https://baseballsavant.mlb.com/gamefeed?gamePk=717442","https://baseb
 
 #check inside the park home run
 #check rbi walk
-#
+#check advancing on an error #Alejandro Kirk advances to 2nd, on a throwing error
 # 
 # check intentional walk
 from game import Game
@@ -37,14 +37,10 @@ start = time.time()
 # for i in range(717170,718782):
 #     time.sleep(5)
 #     print(i)
-#     link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
-# for i in range(1):
-#     link = "https://baseballsavant.mlb.com/gf?game_pk=717386"
 
-#for link in links:
 for i in range(1):
-    j = 717386
-    link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(j)
+
+    link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
     newgame = Game(link)
     validlink = newgame.parse_json()
     if not validlink:

@@ -75,51 +75,48 @@ def get_play_by_play(team):
             elif len(team.scoring_inning_plays[inning]) > 0 and team.scoring_inning_plays[inning][-1] != play_description:
                 team.scoring_inning_plays[inning].append(play_description)
 
+def reached_base_safely(result, play_description, batter):
+    # the batter may have reached, another runner may have reached, or the batter may have been forced out
+    if result == 'Forceout':
+        regex = remove_accents(batter) + '[.]{0,4} out'
+        finder = re.compile(regex)
+        match = finder.findall(play_description)
+        if len(match) > 0:
+            return False
+        return True
 
-# def find_runners_not_in_play_description(team, inning, runners_not_accounted_for):
-#     print("Wack")
-#     for runner in runners_not_accounted_for:
-#         run_finder = re.compile(remove_accents(runner) + '[ ]{0,4}scores')
-#         matches = []
-#         for play in team.scoring_inning_plays[inning]:
-#             play_description = play[1]
-#             matches += run_finder.findall(play_description)
-#         if len(matches) > 0:
-#             continue
-
-#         runner_on_3rd_finder = re.compile(remove_accents(runner) + ' {0,4}to 3rd')
-#         for play in team.scoring_inning_plays[inning]:
-#             play_description = play[1]
-#             match = runner_on_3rd_finder.findall(play_description)
-#             if len(match) > 0:
-#                 team.runs_by_inning[inning][1].append(runner)
-#                 team.runs_remaining[runner] -= 1
-#                 runners_not_accounted_for.remove(runner)
-#                 if team.runs_remaining[runner] < 0:
-#                     print(runner, team.runs_remaining)
-#                     print(team.scoring_inning_plays[inning])
-#                     raise Exception("Player cannot have negative runs remaining")
-
-#                 break
-
-def reached_base_safely(result):
     safe = ['Single', 'Double', 'Triple', 'Home Run', 'Walk', 'Hit By Pitch', 'Field Error', 'Fielders Choice', 'Catcher Interference']
-    out = ['Groundout', 'Flyout', 'Lineout', 'Pop Out', 'Strikeout', 'Double Play', 'Triple Play', 'Forceout']
+    out = ['Groundout', 'Flyout', 'Lineout', 'Pop Out', 'Strikeout', 'Double Play', 'Triple Play', 'GIDP', 'Sac Fly']
     if result in safe: return True
     if result in out: return False
     print(result)
     raise Exception("Invalid play result")
 
+def runner_out_on_bases(runner, team, inning):
+    for play in team.scoring_inning_plays[inning]:
+        play_description = play[1]
+        regex = remove_accents(runner) + '[.]{0,4} out'
+        finder = re.compile(regex)
+        match = finder.findall(play_description)
+        if len(match) > 0:
+            return True
+    return False
+    #     if play[0] == runner:
+    #         result = play[2]
+    #         if not reached_base_safely(result):
+    #             return True
+    # return False
 def adjust_for_uncounted_runners(team):
     runners_not_accounted_for = [player for player, runs in team.runs_remaining.items() if runs > 0]
     
-    print(runners_not_accounted_for)
     if len(runners_not_accounted_for) == 0:
         return
     
     print("RUNNERS NOT ALL ACCOUNTED FOR")
+    print(runners_not_accounted_for)
     print(team.link)
-    if len(runners_not_accounted_for) == 1:
+    if len(runners_not_accounted_for) == 1 and team.runs_remaining[runners_not_accounted_for[0]] == 1:
+        print("FIRST")
         for inning in team.runs_by_inning.keys():
             if len(team.runs_by_inning[inning][1]) != team.runs_by_inning[inning][0]:
                 runner = runners_not_accounted_for[0]
@@ -131,7 +128,7 @@ def adjust_for_uncounted_runners(team):
     for inning in team.runs_by_inning.keys():        
         #all of the unaccounted for runners occured in the same inning
         if len(runners_not_accounted_for) + len(team.runs_by_inning[inning][1]) == team.runs_by_inning[inning][0]:
-            print("here")
+            print("SECOND")
             runners_accounted_for = []
             for runner in runners_not_accounted_for:
                 team.runs_remaining[runner] -= 1
@@ -140,27 +137,31 @@ def adjust_for_uncounted_runners(team):
 
             runners_not_accounted_for = []
             return
-    
+    print("THIRD")
     #stores the innings in which an unaccounted for runner reached base (and their team scored that inning)
     scoring_innings_that_runners_are_not_accounted_for = {}
     for runner in runners_not_accounted_for:
         scoring_innings_that_runners_are_not_accounted_for[runner] = []
 
     for inning in team.scoring_inning_plays.keys():
+        if len(team.runs_by_inning[inning][1]) == team.runs_by_inning[inning][0]:
+            continue
         for play in team.scoring_inning_plays[inning]:
             batter = play[0]
+            play_description = play[1]
             result = play[2]
-            reached_base_safely(result)
-            if batter in runners_not_accounted_for and reached_base_safely(result):
+            if batter in runners_not_accounted_for and reached_base_safely(result, play_description, batter) and not runner_out_on_bases(batter, team, inning):
+                if batter in team.runs_by_inning[inning][1]:
+                    continue
+
                 scoring_innings_that_runners_are_not_accounted_for[batter].append(inning)
 
     # for runners that are unnacounted for in only one scoring inning, we can assume they scored in that inning
-
     for runner, innings in scoring_innings_that_runners_are_not_accounted_for.items():
         if len(innings) == 1:
+            inning = innings[0]
             team.runs_remaining[runner] -= 1
             team.runs_by_inning[inning][1].append(runner)
-    
     runners_not_accounted_for = [player for player, runs in team.runs_remaining.items() if runs > 0]
 
     if len(runners_not_accounted_for) > 0:
@@ -185,38 +186,9 @@ def adjust_for_uncounted_runners(team):
                 team.runs_remaining[runner] -= 1
                 team.runs_by_inning[inning][1].append(runner)
 
-                # batters.append(play[0])
-    # print(team.runs_by_inning[inning])
-    # print("here2")
-    # # check to see if the runners 
-    # print(team.runs_by_inning[inning][0])
-    # print(team.runs_by_inning[inning][1])
-    # batters = []
-    # for play in team.scoring_inning_plays[inning]:
-    #     if play[0] in runners_not_accounted_for.keys():
-    #         batters.append(play[0])
-    #     print(play)
-    # print(batters)
-
-            # find_runners_not_in_play_description(team, inning, runners_not_accounted_for)
-            # if len(runners_not_accounted_for) == 1:
-            #     runner = runners_not_accounted_for[0]
-            #     team.runs_remaining[runner] -= 1
-            #     team.runs_by_inning[inning][1].append(runner)
-            #     runners_not_accounted_for.remove(runner)
-            #     break
-    # if len(runners_not_accounted_for) > 0:
-    #     return
-    #     print(runners_not_accounted_for)
-    #     print(team.scoring_inning_plays)
-    #     print(runners_not_accounted_for)
-    #     raise Exception("ERROR: not all runners accounted for")
-
-
 def find_runners_that_score(team):
     for inning, plays_list in team.scoring_inning_plays.items():
         for i in range(len(plays_list)):
-            #print(plays_list[i][2])
             batter = plays_list[i][0]
             play_description = plays_list[i][1]
             for player in team.runs_remaining.keys():
@@ -236,10 +208,7 @@ def re_finder(player, batter, inning, plays_list, play_description, expression, 
     regex = remove_accents(player) + expression
     finder = re.compile(regex)
     match = finder.findall(play_description)
-    #if inning ==  6 and player == 'Christian Vázquez':
-        # print(match)
-        # print("IOUGSHRIGWUR")
-        # print(play_description)
+
     if len(match) > 0:
         team.runs_by_inning[inning][1].append(player)
         #to avoid double counting homeruns
@@ -258,11 +227,12 @@ def calculateaRBI(team):
             play_description = plays_list[i][1]
             play_result = plays_list[i][2]
             aRBIs = []
+
             for runner in set(team.runs_by_inning[inning][1]):
                 if runner == batter:
                     continue
                 # batters where runners advance on an error are not given an aRBI
-                runner_to_2nd_on_error_finder = re.compile(remove_accents(runner) + '.* to 2nd.* error')
+                runner_to_2nd_on_error_finder = re.compile(remove_accents(runner) + 'advances to 2nd.* error')
                 match = runner_to_2nd_on_error_finder.findall(play_description)
                 if len(match) == 0:
                     runner_to_2nd_finder = re.compile(remove_accents(runner) + ' {0,4}to 2nd')
@@ -272,7 +242,7 @@ def calculateaRBI(team):
                         team.aRBI[batter] += len(match)
 
                 # batters where runners advance on an error are not given an aRBI
-                runner_to_3rd_on_error_finder = re.compile(remove_accents(runner) + '.* to 3rd.* error')
+                runner_to_3rd_on_error_finder = re.compile(remove_accents(runner) + 'advances to 3rd.* error')
                 match = runner_to_3rd_on_error_finder.findall(play_description)
                 if len(match) == 0:
                     runner_to_3rd_finder = re.compile(remove_accents(runner) + ' {0,4}to 3rd')
