@@ -1,35 +1,14 @@
-# import re
-# import requests
 import time
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717111" #correct (1,34)
-
-#link = "https://baseballsavant.mlb.com/gf?game_pk=663222" #correct (6,66)
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717311" #correct (9,3)
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717222" #correct (9,3)
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717404" #correct (9,5)
-#link = "https://baseballsavant.mlb.com/gf?game_pk=717442" #correct (4,0)
-
-links = ["https://baseballsavant.mlb.com/gf?game_pk=717111", "https://baseballsavant.mlb.com/gf?game_pk=663222", "https://baseballsavant.mlb.com/gf?game_pk=717311",
-         "https://baseballsavant.mlb.com/gf?game_pk=717222", "https://baseballsavant.mlb.com/gf?game_pk=717404", "https://baseballsavant.mlb.com/gf?game_pk=717442"]
-#Done: find a game with a wild pitch with runner that scores, steal of 2nd, and reach on error
-# batter reaches on error: no arbi
-# runner scores on error: no arbi
-#runner that will score advances on error but does not score: arbi
-#batters who are pinch ran for do not recieve an arbi if their pinch runner scores
-newlinks = ["https://baseballsavant.mlb.com/gf?game_pk=716484", "https://baseballsavant.mlb.com/gf?game_pk=716492","https://baseballsavant.mlb.com/gf?game_pk=716630",
-            "https://baseballsavant.mlb.com/gf?game_pk=716803", "https://baseballsavant.mlb.com/gf?game_pk=716871","https://baseballsavant.mlb.com/gf?game_pk=717157"
-            "https://baseballsavant.mlb.com/gf?game_pk=717038", "https://baseballsavant.mlb.com/gf?game_pk=717170"]
-#links to check:
-links3 = ["https://baseballsavant.mlb.com/gamefeed?gamePk=717442","https://baseballsavant.mlb.com/gamefeed?gamePk=717111",
-"https://baseballsavant.mlb.com/gamefeed?gamePk=717386"]
-
-#check inside the park home run
-#check rbi walk
-#check advancing on an error #Alejandro Kirk advances to 2nd, on a throwing error
-# 
-# check intentional walk
 from game import Game
 import game
+# batter reaches on error: arbi
+# runner scores on error (during an at bat e.g. wild pitch): no arbi
+#runner that will score advances on error but does not score: no arbi
+#batters who are pinch ran for do not recieve an arbi if their pinch runner scores
+
+#check inside the park home run
+# check intentional walk
+
 
 start = time.time()
 
@@ -40,7 +19,8 @@ start = time.time()
 
 for i in range(1):
 
-    link = "https://baseballsavant.mlb.com/gf?game_pk=717404"
+    #link = "https://baseballsavant.mlb.com/gf?game_pk=662014"
+    link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
     newgame = Game(link)
     validlink = newgame.parse_json()
     if not validlink:

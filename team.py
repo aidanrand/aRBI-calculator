@@ -7,6 +7,7 @@ class Team:
         self.play_by_play = None
         self.players_info = None
         self.players = {}
+        self.pinch_runners = []
         self.aRBI = {}
 
         self.scoring_innings = []
