@@ -2,7 +2,7 @@ import re
 import unicodedata
 import requests
 from team import Team
-
+import datetime
 
 class Game:
     def __init__(self, link):
@@ -19,20 +19,26 @@ class Game:
         if json_data.get("error") == "Invalid Game PK.":
             return False
         #keys = json_data.keys()
+        try:
+            self.home.name = json_data.get('home_team_data').get('name')
+            self.away.name = json_data.get('away_team_data').get('name')
+            if not valid_MLB_team(self.home.name) or not valid_MLB_team(self.away.name):
+                return False
+            self.game_date = json_data.get('gameDate')
+            if not regular_season_game(self.game_date):
+                return False
+            self.scoreboard_by_inning = json_data.get('scoreboard').get('linescore').get('innings')
 
-        self.game_date = json_data.get('gameDate')
-        self.scoreboard_by_inning = json_data.get('scoreboard').get('linescore').get('innings')
-        self.home.name = json_data.get('home_team_data').get('name')
+            #play by play data is listed when a team is pitching, not when they are batting
+            self.home.play_by_play = json_data.get('team_away') 
+            self.away.play_by_play = json_data.get('team_home')
 
-        #data for team is listed when they are pitching, not when they are batting
-        self.home.play_by_play = json_data.get('team_away')
-        self.away.name = json_data.get('away_team_data').get('name')
-        self.away.play_by_play = json_data.get('team_home')
-
-        self.home.players_info = json_data.get('boxscore').get('teams').get('home').get('players').values()
-        self.away.players_info = json_data.get('boxscore').get('teams').get('away').get('players').values()
+            self.home.players_info = json_data.get('boxscore').get('teams').get('home').get('players').values()
+            self.away.players_info = json_data.get('boxscore').get('teams').get('away').get('players').values()
+        except AttributeError:
+            return False
         return True
-
+    
     def get_scoring_innings(self):
         for inning in self.scoreboard_by_inning:
             runs = inning.get('home').get('runs')
@@ -51,7 +57,44 @@ class Game:
         get_play_by_play(self.home)
         get_play_by_play(self.away)
 
+def valid_MLB_team(team_name):
+    if team_name is None:
+        return False
+    
+    if team_name in {"Arizona Diamondbacks", "Atlanta Braves", 
+                        "Baltimore Orioles", "Boston Red Sox", 
+                        "Chicago White Sox", "Chicago Cubs", 
+                        "Cincinnati Reds", "Cleveland Guardians",
+                        "Cleveland Indians", "Colorado Rockies", 
+                        "Detroit Tigers", "Houston Astros", 
+                        "Kansas City Royals", "Los Angeles Angels", 
+                        "Los Angeles Dodgers", "Miami Marlins", 
+                        "Milwaukee Brewers", "Minnesota Twins", 
+                        "New York Mets", "New York Yankees", 
+                        "Oakland Athletics", "Philadelphia Phillies", 
+                        "Pittsburgh Pirates", "San Diego Padres", 
+                        "San Francisco Giants", "Seattle Mariners", 
+                        "St. Louis Cardinals", "Tampa Bay Rays",
+                        "Tampa Bay Devil Rays", 
+                        "Texas Rangers", "Toronto Blue Jays", 
+                        "Washington Nationals"}:
+        return True
+    return False
 
+def regular_season_game(date):
+    if date is None:
+        return False
+    print(date)
+    date_format = "%Y-%m-%d"
+    try:
+        date = datetime.strptime(date, date_format)
+    except ValueError:
+        return False
+    
+    season_start = datetime.strptime("2023-03-30", date_format)
+    season_end = datetime.strptime("2023-10-01", date_format)
+    
+    return season_start <= date <= season_end
 def get_lineup(team):
     for player_info in team.players_info:
         player_id = player_info.get('person').get('id')
@@ -84,7 +127,7 @@ def get_play_by_play(team):
 def reached_base_safely(result, play_description, batter):
     # the batter may have reached, another runner may have reached, or the batter may have been forced out
     if result == 'Forceout':
-        regex = remove_accents(batter) + '[.]{0,4} out'
+        regex = format_name(batter) + '[.]{0,4} out'
         finder = re.compile(regex)
         match = finder.findall(play_description)
         if len(match) > 0:
@@ -101,7 +144,7 @@ def reached_base_safely(result, play_description, batter):
 def runner_out_on_bases(runner, team, inning):
     for play in team.scoring_inning_plays[inning]:
         play_description = play[1]
-        regex = remove_accents(runner) + '[.]{0,4} out'
+        regex = format_name(runner) + '[.]{0,4} out'
         finder = re.compile(regex)
         match = finder.findall(play_description)
         if len(match) > 0:
@@ -114,23 +157,20 @@ def adjust_for_uncounted_runners(team):
     
     if len(runners_not_accounted_for) == 0:
         return
-    
-    if len(runners_not_accounted_for) == 1 and team.runs_remaining[runners_not_accounted_for[0]] == 1:
-        print("FIRST")
+
+    if len(runners_not_accounted_for) == 1:
         for inning in team.runs_by_inning.keys():
             if len(team.runs_by_inning[inning][1]) != team.runs_by_inning[inning][0]:
                 runner = runners_not_accounted_for[0]
                 team.runs_remaining[runner] -= 1
                 team.runs_by_inning[inning][1].append(runner)
-                runners_not_accounted_for = []
-                return
 
-    print("RUNNERS NOT ALL ACCOUNTED FOR: " , runners_not_accounted_for)
-    #print(team.link)
+        runners_not_accounted_for = []
+        return
+    
     for inning in team.runs_by_inning.keys():        
         #all of the unaccounted for runners occured in the same inning
         if len(runners_not_accounted_for) + len(team.runs_by_inning[inning][1]) == team.runs_by_inning[inning][0]:
-            print("SECOND")
             runners_accounted_for = []
             for runner in runners_not_accounted_for:
                 team.runs_remaining[runner] -= 1
@@ -139,7 +179,8 @@ def adjust_for_uncounted_runners(team):
 
             runners_not_accounted_for = []
             return
-    print("THIRD")
+    print(team.link, ".... THIRD")
+    print("RUNNERS NOT ALL ACCOUNTED FOR: " , runners_not_accounted_for)
     #stores the innings in which an unaccounted for runner reached base (and their team scored that inning)
     scoring_innings_that_runners_are_not_accounted_for = {}
     for runner in runners_not_accounted_for:
@@ -195,8 +236,9 @@ def adjust_for_uncounted_runners(team):
                     print("The number must be greater than or equal to zero and not previously inputted. Please try again.")
 
             for inning in innings:
-                team.runs_remaining[runner] -= 1
-                team.runs_by_inning[inning][1].append(runner)
+                if runner not in team.runs_by_inning[inning][1]:
+                    team.runs_remaining[runner] -= 1
+                    team.runs_by_inning[inning][1].append(runner)
 
 def find_runners_that_score(team):
     for inning, plays_list in team.scoring_inning_plays.items():
@@ -212,12 +254,38 @@ def find_runners_that_score(team):
 
     adjust_for_uncounted_runners(team)
 
+# Play by play data does not have accents in people's names, so they are removed to match the regex expression
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return ''.join([c for c in nfkd_form if not unicodedata.combining(c)])
 
+# Due to incorrect play by play data, makes suffixes optional in the regex expression
+def adjust_suffixes(name):
+    suffixes = ["Jr.", "III", "II", "IV"]
+    for suffix in suffixes:
+        if suffix in name:
+            name = name.replace(suffix, f"({suffix})?")
+            break
+    return name
+
+# In the play by play data, there may be extra spaces between parts of people's names. 
+# Additionally, people that have two letter first names may have a period between the letters.
+def add_spaces_and_periods(name):
+    name_parts = name.split()
+    if len(name_parts[0]) == 2:
+        name_parts[0] = f"{name_parts[0][0]}[.]?{name_parts[0][1]}[.]?"
+    name = ' '.join(name_parts)
+    name = name.replace(" ", "[ ]{0,4}")
+    return name
+
+def format_name(name):
+    name = adjust_suffixes(name)
+    name = remove_accents(name)
+    name = add_spaces_and_periods(name)
+    return remove_accents(adjust_suffixes(name))
+
 def re_finder(player, batter, inning, plays_list, play_description, expression, team, home_run):
-    regex = remove_accents(player) + expression
+    regex = format_name(player) + expression
     finder = re.compile(regex)
     match = finder.findall(play_description)
 
@@ -244,20 +312,20 @@ def calculateaRBI(team):
                 if runner == batter:
                     continue
                 # batters where runners advance on an error are not given an aRBI
-                runner_to_2nd_on_error_finder = re.compile(remove_accents(runner) + ' {0,4}advances to 2nd, on a.* error')
+                runner_to_2nd_on_error_finder = re.compile(format_name(runner) + ' {0,4}advances to 2nd, on a.* error')
                 match = runner_to_2nd_on_error_finder.findall(play_description)
                 if len(match) == 0:
-                    runner_to_2nd_finder = re.compile(remove_accents(runner) + ' {0,4}to 2nd')
+                    runner_to_2nd_finder = re.compile(format_name(runner) + ' {0,4}to 2nd')
                     match = runner_to_2nd_finder.findall(play_description)
                     if len(match) > 0:
                         aRBIs.append(runner)
                         team.aRBI[batter] += len(match)
 
                 # batters where runners advance on an error are not given an aRBI
-                runner_to_3rd_on_error_finder = re.compile(remove_accents(runner) + ' {0,4}advances to 3rd, on a.* error')
+                runner_to_3rd_on_error_finder = re.compile(format_name(runner) + ' {0,4}advances to 3rd, on a.* error')
                 match = runner_to_3rd_on_error_finder.findall(play_description)
                 if len(match) == 0:
-                    runner_to_3rd_finder = re.compile(remove_accents(runner) + ' {0,4}to 3rd')
+                    runner_to_3rd_finder = re.compile(format_name(runner) + ' {0,4}to 3rd')
                     match = runner_to_3rd_finder.findall(play_description)
                     if len(match) > 0:
                         aRBIs.append(runner)
@@ -285,7 +353,7 @@ def adjust_for_intentional_walks(team):
         for play in plays_list:
             batters.add(play[0])
         for player in players:
-            regex = remove_accents(player)
+            regex = format_name(player)
             finder = re.compile(regex)
             for play in plays_list:
                 match = finder.findall(play[1])

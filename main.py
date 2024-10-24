@@ -6,26 +6,29 @@ import game
 #runner that will score advances on error but does not score: no arbi
 #batters who are pinch ran for do not recieve an arbi if their pinch runner scores
 
-#check inside the park home run
-# check intentional walk
 
 
 start = time.time()
 
-# for i in range(716404,718782):
+#for i in range(716404,718782):
+# for i in range(716888,718782):
 # for i in range(717170,718782):
 #     time.sleep(5)
 #     print(i)
+#for i in range(718782,720000):
+for i in range(718939,720000):
+#for i in range(1):
 
-for i in range(1):
+    link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
+    #print(link)
+    #link = "https://baseballsavant.mlb.com/gf?game_pk=718645"
 
-    #link = "https://baseballsavant.mlb.com/gf?game_pk=662014"
-    link = "https://baseballsavant.mlb.com/gf?game_pk=717311"
     newgame = Game(link)
     validlink = newgame.parse_json()
     if not validlink:
         print("INVALID GAME")
         continue
+    print(link)
     game.get_lineup(newgame.home)
     game.get_lineup(newgame.away)
     newgame.get_scoring_innings()
@@ -40,17 +43,17 @@ for i in range(1):
     awaysum = 0
     for players, aRBI in newgame.home.aRBI.items():
         if aRBI > 0:
-            print(players, aRBI)
+            #print(players, aRBI)
             homesum += aRBI
 
-    print("Home Total aRBI: ", homesum)
+    #print("Home Total aRBI: ", homesum)
 
     for players, aRBI in newgame.away.aRBI.items():
         if aRBI > 0:
-            print(players, aRBI)
+            #print(players, aRBI)
             awaysum += aRBI
 
-    print("Away Total aRBI: ", awaysum)
+    #print("Away Total aRBI: ", awaysum)
 
 end = time.time()
 
