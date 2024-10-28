@@ -42,12 +42,8 @@ links = [                            #link to game, correct home aRBI, correct a
 
 ]
 
-
-# for i in range(716404,718782):
-# for i in range(717170,718782):
 for i in range(len(links)):
     link = links[i][0]
-    #print(link)
     correcthome = links[i][1]
     correctaway = links[i][2]
     newgame = Game(link)

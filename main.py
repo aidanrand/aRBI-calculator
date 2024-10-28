@@ -1,34 +1,29 @@
 import time
 from game import Game
 import game
+import excel
+
 # batter reaches on error: arbi
 # runner scores on error (during an at bat e.g. wild pitch): no arbi
 #runner that will score advances on error but does not score: no arbi
 #batters who are pinch ran for do not recieve an arbi if their pinch runner scores
 
-
-
 start = time.time()
+# 2023 season: 716352 718782 (2429 total games)
+# 2023 postseason: 748534 748585 (41 total games)
+# All Star Game: 717421
 
-#for i in range(716404,718782):
-# for i in range(716888,718782):
-# for i in range(717170,718782):
-#     time.sleep(5)
-#     print(i)
-#for i in range(718782,720000):
-for i in range(718939,720000):
-#for i in range(1):
-
+count = 0
+for i in range(748534,748586):
     link = "https://baseballsavant.mlb.com/gf?game_pk=" + str(i)
-    #print(link)
-    #link = "https://baseballsavant.mlb.com/gf?game_pk=718645"
 
     newgame = Game(link)
     validlink = newgame.parse_json()
     if not validlink:
-        print("INVALID GAME")
+        print(link,"INVALID GAME")
         continue
     print(link)
+    count += 1
     game.get_lineup(newgame.home)
     game.get_lineup(newgame.away)
     newgame.get_scoring_innings()
@@ -38,23 +33,16 @@ for i in range(718939,720000):
 
     game.calculateaRBI(newgame.home)
     game.calculateaRBI(newgame.away)
-
-    homesum = 0
-    awaysum = 0
-    for players, aRBI in newgame.home.aRBI.items():
-        if aRBI > 0:
-            #print(players, aRBI)
-            homesum += aRBI
-
-    #print("Home Total aRBI: ", homesum)
-
-    for players, aRBI in newgame.away.aRBI.items():
-        if aRBI > 0:
-            #print(players, aRBI)
-            awaysum += aRBI
-
-    #print("Away Total aRBI: ", awaysum)
+    
+    filename = "aRBI2023.xlsx"
+    data = {"month": newgame.month, "home": newgame.home.name, "home_players": 
+            newgame.home.players, "home_aRBI": newgame.home.aRBI, 
+            "away": newgame.away.name, "away_players": newgame.away.players,
+            "away_aRBI": newgame.away.aRBI}
+    
+    excel.write_results_to_excel(data, filename, False)
 
 end = time.time()
 
 print(end - start)
+print(count)

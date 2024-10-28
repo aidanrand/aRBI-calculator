@@ -2,12 +2,13 @@ import re
 import unicodedata
 import requests
 from team import Team
-import datetime
+from datetime import datetime
 
 class Game:
     def __init__(self, link):
         self.link = link
         self.game_date = None
+        self.month = None
         self.scoreboard_by_inning = None
         self.home = Team()
         self.away = Team()
@@ -18,15 +19,18 @@ class Game:
         json_data = requests.get(self.link).json()
         if json_data.get("error") == "Invalid Game PK.":
             return False
-        #keys = json_data.keys()
+
         try:
             self.home.name = json_data.get('home_team_data').get('name')
             self.away.name = json_data.get('away_team_data').get('name')
             if not valid_MLB_team(self.home.name) or not valid_MLB_team(self.away.name):
                 return False
+
             self.game_date = json_data.get('gameDate')
             if not regular_season_game(self.game_date):
                 return False
+
+            self.month = get_month(self.game_date)
             self.scoreboard_by_inning = json_data.get('scoreboard').get('linescore').get('innings')
 
             #play by play data is listed when a team is pitching, not when they are batting
@@ -84,17 +88,19 @@ def valid_MLB_team(team_name):
 def regular_season_game(date):
     if date is None:
         return False
-    print(date)
-    date_format = "%Y-%m-%d"
-    try:
-        date = datetime.strptime(date, date_format)
-    except ValueError:
-        return False
     
-    season_start = datetime.strptime("2023-03-30", date_format)
-    season_end = datetime.strptime("2023-10-01", date_format)
+    date = datetime.strptime(date, "%m/%d/%Y")
+    # Convert the date to yyyy-mm-dd format
+    #date = date_obj.strftime("%Y-%m-%d")
+
+    season_start = datetime.strptime("2023-03-30", "%Y-%m-%d")
+    season_end = datetime.strptime("2023-10-01", "%Y-%m-%d")
     
     return season_start <= date <= season_end
+
+def get_month(date):
+    return int(date.split("/")[0])
+
 def get_lineup(team):
     for player_info in team.players_info:
         player_id = player_info.get('person').get('id')
@@ -179,8 +185,7 @@ def adjust_for_uncounted_runners(team):
 
             runners_not_accounted_for = []
             return
-    print(team.link, ".... THIRD")
-    print("RUNNERS NOT ALL ACCOUNTED FOR: " , runners_not_accounted_for)
+
     #stores the innings in which an unaccounted for runner reached base (and their team scored that inning)
     scoring_innings_that_runners_are_not_accounted_for = {}
     for runner in runners_not_accounted_for:
